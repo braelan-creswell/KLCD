@@ -1,0 +1,303 @@
+// A. Sheaff 2/22/2022 - LCD Driver
+// Framework code for creating a kernel driver
+// that operates an LCD
+// Allocate GPIO pins from the kernel
+#include <linux/module.h>
+#include <linux/kernel.h>
+#include <linux/device.h>
+#include <linux/err.h>
+#include <linux/fs.h>
+#include <linux/spinlock.h>
+#include <linux/delay.h>
+#include <linux/list.h>
+#include <linux/io.h>
+#include <linux/ioctl.h>
+#include <linux/uaccess.h>
+#include <linux/irq.h>
+#include <linux/interrupt.h>
+#include <linux/slab.h>
+#include <linux/gpio.h>
+#include <linux/of_gpio.h>
+#include <linux/platform_device.h>
+#include <linux/pinctrl/consumer.h>
+#include <linux/gpio/consumer.h>
+#include <linux/jiffies.h>
+
+#include "lcd.h"
+
+// Data to be "passed" around to various functions
+struct lcd_data_t {
+	struct gpio_desc *gpio_lcd_rs;		// LCD RS pin
+	struct gpio_desc *gpio_lcd_e;		// LCD E pin
+	struct gpio_desc *gpio_lcd_d4;		// LCD D4 pin
+	struct gpio_desc *gpio_lcd_d5;		// LCD D5 pin
+	struct gpio_desc *gpio_lcd_d6;		// LCD D6 pin
+	struct gpio_desc *gpio_lcd_d7;		// LCD D7 pin
+	struct class *lcd_class;			// Class for auto /dev population
+	struct device *lcd_dev;				// Device for auto /dev population
+	struct platform_device *pdev;		// Platform driver
+	int lcd_major;						// Device major number
+/*****************************************************************************/
+	// Add your locking variable below this line
+
+/*****************************************************************************/
+
+};
+
+// LCD data structure access between functions
+static struct lcd_data_t *lcd_dat=NULL;
+
+/*****************************************************************************/
+// Add your LCD code here.  Be sure to change the userspace gpio functions
+// to kernel space functions
+
+/*****************************************************************************/
+
+// ioctl system call
+// If an LCD instruction is the command then
+//   use arg directly as the value (8 bits) and write to the LCD as an instruction
+// Determine if locking is needed and add appropriate code as needed.
+static long lcd_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+{
+/*****************************************************************************/
+// Add your ioctl code here
+
+// Fix the return value
+	return -EINVAL;
+/*****************************************************************************/
+}
+
+// Write system call - always check for and act appropriately upon error.
+//  DO not return upon while holding a lock
+// maximum write size to the LCD is 32 bytes.
+//   Do not allow any more.  Return the minimum of count or 32, or an error.
+// allocate memory in the kernel for data passed from user space
+// copy the data
+// If the file is opened non-blocking and the lock is held,
+//   return with an appropraite error
+// else
+//   If the lock is held,
+//     Wait until the lock is released and then acquire the lock
+//     if while waiting for the lock, the user process is interrupted
+//       return with and error
+//   else
+//     Acquire the lock
+// Write up to the first 32 bytes of data to the LCD at the proper location
+// release the lock
+// Free memory
+// This function return the number of byte successfully writen
+static ssize_t lcd_write(struct file *filp, const char __user *buf, size_t count, loff_t *offp)
+{
+/*****************************************************************************/
+// Add your write code here
+
+// Fix the return value
+	return -EINVAL;
+/*****************************************************************************/
+}
+
+// Open system call
+// Open only if the file access flags (NOT permissions) are appropiate as discussed in class
+// Return an appropraite error otherwise
+static int lcd_open(struct inode *inode, struct file *filp)
+{
+/*****************************************************************************/
+// Add your open code here
+
+/*****************************************************************************/
+
+	return 0;
+}
+
+// Close system call
+static int lcd_release(struct inode *inode, struct file *filp)
+{
+/*****************************************************************************/
+// Add your release (close) code here
+
+/*****************************************************************************/
+    return 0;
+}
+
+// File operations for the lcd device.  Uninitialized will be NULL.
+static const struct file_operations lcd_fops = {
+	.owner = THIS_MODULE,	// Us
+	.open = lcd_open,		// Open
+	.release = lcd_release,// Close
+	.write = lcd_write,	// Write
+	.unlocked_ioctl=lcd_ioctl,	// ioctl
+};
+
+// Init value<0 means input
+static struct gpio_desc *lcd_obtain_pin(struct device *dev, int pin, char *name, int init_val)
+{
+	struct gpio_desc *gpiod_pin=NULL;	// GPIO Descriptor for setting value
+	int ret=-1;	// Return value
+
+	// Request the pin - release with devm_gpio_free() by pin number
+	if (init_val>=0) {
+		ret=devm_gpio_request_one(dev,pin,GPIOF_OUT_INIT_LOW,name);
+		if (ret<0) {
+			dev_err(dev,"Cannot get %s gpio pin\n",name);
+			gpiod_pin=NULL;
+			goto fail;
+		}
+	} else {
+		ret=devm_gpio_request_one(dev,pin,GPIOF_IN,name);
+		if (ret<0) {
+			dev_err(dev,"Cannot get %s gpio pin\n",name);
+			gpiod_pin=NULL;
+			goto fail;
+		}
+	}
+
+	// Get the gpiod pin struct
+	gpiod_pin=gpio_to_desc(pin);
+	if (gpiod_pin==NULL) {
+		printk(KERN_INFO "Failed to acquire lcd gpio\n");
+		gpiod_pin=NULL;
+		goto fail;
+	}
+
+	// Make sure the pin is set correctly
+	if (init_val>=0) gpiod_set_value(gpiod_pin,init_val);
+
+	return gpiod_pin;
+
+fail:
+	if (ret>=0) devm_gpio_free(dev,pin);
+
+	return gpiod_pin;
+}
+
+
+// Sets device node permission on the /dev device special file
+static char *lcd_devnode(struct device *dev, umode_t *mode)
+{
+	if (mode) *mode = 0666;
+	return NULL;
+}
+
+// This is called on module load.
+static int __init lcd_probe(void)
+{
+	int ret=-1;	// Return value
+
+	// Allocate device driver data and save
+	lcd_dat=kmalloc(sizeof(struct lcd_data_t),GFP_KERNEL);
+	if (lcd_dat==NULL) {
+		printk(KERN_INFO "Memory allocation failed\n");
+		return -ENOMEM;
+	}
+
+	memset(lcd_dat,0,sizeof(struct lcd_data_t));
+
+	// Create the device - automagically assign a major number
+	lcd_dat->lcd_major=register_chrdev(0,"lcd",&lcd_fops);
+	if (lcd_dat->lcd_major<0) {
+		printk(KERN_INFO "Failed to register character device\n");
+		ret=lcd_dat->lcd_major;
+		goto fail;
+	}
+
+	// Create a class instance
+	lcd_dat->lcd_class=class_create(THIS_MODULE, "lcd_class");
+	if (IS_ERR(lcd_dat->lcd_class)) {
+		printk(KERN_INFO "Failed to create class\n");
+		ret=PTR_ERR(lcd_dat->lcd_class);
+		goto fail;
+	}
+
+	// Setup the device so the device special file is created with 0666 perms
+	lcd_dat->lcd_class->devnode=lcd_devnode;
+	lcd_dat->lcd_dev=device_create(lcd_dat->lcd_class,NULL,MKDEV(lcd_dat->lcd_major,0),(void *)lcd_dat,"lcd");
+	if (IS_ERR(lcd_dat->lcd_dev)) {
+		printk(KERN_INFO "Failed to create device file\n");
+		ret=PTR_ERR(lcd_dat->lcd_dev);
+		goto fail;
+	}
+
+	lcd_dat->gpio_lcd_rs=lcd_obtain_pin(lcd_dat->lcd_dev,17,"LCD_RS",0);
+	if (lcd_dat->gpio_lcd_rs==NULL) goto fail;
+	lcd_dat->gpio_lcd_e=lcd_obtain_pin(lcd_dat->lcd_dev,27,"LCD_E",0);
+	if (lcd_dat->gpio_lcd_e==NULL) goto fail;
+	lcd_dat->gpio_lcd_d4=lcd_obtain_pin(lcd_dat->lcd_dev,6,"LCD_D4",0);
+	if (lcd_dat->gpio_lcd_d4==NULL) goto fail;
+	lcd_dat->gpio_lcd_d5=lcd_obtain_pin(lcd_dat->lcd_dev,13,"LCD_D5",0);
+	if (lcd_dat->gpio_lcd_d5==NULL) goto fail;
+	lcd_dat->gpio_lcd_d6=lcd_obtain_pin(lcd_dat->lcd_dev,19,"LCD_D5",0);
+	if (lcd_dat->gpio_lcd_d6==NULL) goto fail;
+	lcd_dat->gpio_lcd_d7=lcd_obtain_pin(lcd_dat->lcd_dev,26,"LCD_D7",0);
+	if (lcd_dat->gpio_lcd_d7==NULL) goto fail;
+
+/*****************************************************************************/
+// Add your locking initializer and lcd initializer here
+
+
+
+
+/*****************************************************************************/
+
+	printk(KERN_INFO "Registered\n");
+
+	return 0;
+
+fail:
+	if (lcd_dat->gpio_lcd_d7) devm_gpio_free(lcd_dat->lcd_dev,desc_to_gpio(lcd_dat->gpio_lcd_d7));
+	if (lcd_dat->gpio_lcd_d6) devm_gpio_free(lcd_dat->lcd_dev,desc_to_gpio(lcd_dat->gpio_lcd_d6));
+	if (lcd_dat->gpio_lcd_d5) devm_gpio_free(lcd_dat->lcd_dev,desc_to_gpio(lcd_dat->gpio_lcd_d5));
+	if (lcd_dat->gpio_lcd_d4) devm_gpio_free(lcd_dat->lcd_dev,desc_to_gpio(lcd_dat->gpio_lcd_d4));
+	if (lcd_dat->gpio_lcd_e) devm_gpio_free(lcd_dat->lcd_dev,desc_to_gpio(lcd_dat->gpio_lcd_e));
+	if (lcd_dat->gpio_lcd_rs) devm_gpio_free(lcd_dat->lcd_dev,desc_to_gpio(lcd_dat->gpio_lcd_rs));
+
+	// Device cleanup
+	if (lcd_dat->lcd_dev) device_destroy(lcd_dat->lcd_class,MKDEV(lcd_dat->lcd_major,0));
+	// Class cleanup
+	if (lcd_dat->lcd_class) class_destroy(lcd_dat->lcd_class);
+	// char dev clean up
+	if (lcd_dat->lcd_major) unregister_chrdev(lcd_dat->lcd_major,"lcd");
+
+	if (lcd_dat!=NULL) kfree(lcd_dat);
+	printk(KERN_INFO "LCD Failed\n");
+	return ret;
+}
+
+// Called when the module is removed
+static void __exit lcd_remove(void)
+{
+	// Free the gpio pins with devm_gpio_free() & gpiod_put()
+	devm_gpio_free(lcd_dat->lcd_dev,desc_to_gpio(lcd_dat->gpio_lcd_d7));
+	devm_gpio_free(lcd_dat->lcd_dev,desc_to_gpio(lcd_dat->gpio_lcd_d6));
+	devm_gpio_free(lcd_dat->lcd_dev,desc_to_gpio(lcd_dat->gpio_lcd_d5));
+	devm_gpio_free(lcd_dat->lcd_dev,desc_to_gpio(lcd_dat->gpio_lcd_d4));
+	devm_gpio_free(lcd_dat->lcd_dev,desc_to_gpio(lcd_dat->gpio_lcd_e));
+	devm_gpio_free(lcd_dat->lcd_dev,desc_to_gpio(lcd_dat->gpio_lcd_rs));
+
+	// Device cleanup
+	device_destroy(lcd_dat->lcd_class,MKDEV(lcd_dat->lcd_major,0));
+	// Class cleanup
+	class_destroy(lcd_dat->lcd_class);
+	// Remove char dev
+	unregister_chrdev(lcd_dat->lcd_major,"lcd");
+	
+	// Free the device driver data
+	if (lcd_dat!=NULL) {
+		kfree(lcd_dat);
+		lcd_dat=NULL;
+	}
+
+	printk(KERN_INFO "Removed\n");
+}
+
+module_init(lcd_probe);
+module_exit(lcd_remove);
+
+MODULE_DESCRIPTION("RPI R-2R LCD");
+MODULE_LICENSE("GPL");
+MODULE_DESCRIPTION("LCD");
+#include <linux/kernel.h>
+#include <linux/gpio.h>
+#include <linux/gpio/consumer.h>
+#include <linux/delay.h>
+#include "lcd.h"
+
