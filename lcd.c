@@ -1,5 +1,5 @@
-// A. Sheaff 2/22/2022 - LCD Driver
-// Framework code for creating a kernel driver
+// A. Sheaff 2/22/2022 - Framework code
+// Braelan Creswell - Kernel Driver
 // that operates an LCD
 // Allocate GPIO pins from the kernel
 #include <linux/module.h>
@@ -279,7 +279,7 @@ static void __exit lcd_remove(void)
 	class_destroy(lcd_dat->lcd_class);
 	// Remove char dev
 	unregister_chrdev(lcd_dat->lcd_major,"lcd");
-	
+
 	// Free the device driver data
 	if (lcd_dat!=NULL) {
 		kfree(lcd_dat);
@@ -300,4 +300,3 @@ MODULE_DESCRIPTION("LCD");
 #include <linux/gpio/consumer.h>
 #include <linux/delay.h>
 #include "lcd.h"
-
