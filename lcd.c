@@ -294,7 +294,7 @@ module_exit(lcd_remove);
 
 MODULE_DESCRIPTION("RPI R-2R LCD");
 MODULE_LICENSE("GPL");
-MODULE_DESCRIPTION("LCD");
+MODULE_DESCRIPTION("KLCD");
 #include <linux/kernel.h>
 #include <linux/gpio.h>
 #include <linux/gpio/consumer.h>
