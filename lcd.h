@@ -9,6 +9,13 @@
 #define DRIVER_AUTHOR	"Braelan Creswell"
 #define DRIVER_DESC	"4bit mode LCD Kernel Driver for RPi"	
 
+//IOCTL Commands
+#define MAGIC_NUM       ???
+
+#define LCDIO_WRITE     _IO(MAGIC_NUM, 1)
+#define LCDIO_CLEAR     _IO(MAGIC_NUM, 2)
+#define LCDIO_COMMAND   _IO(MAGIC_NUM, 3)
+
 // LCD module information
 #define LCD_LINEONE     0x00                    //line 1
 #define LCD_LINETWO     0x40                    //line 2

@@ -47,11 +47,29 @@ struct lcd_data_t {
 // LCD data structure access between functions
 static struct lcd_data_t *lcd_dat=NULL;
 
-/*****************************************************************************/
-// Add your LCD code here.  Be sure to change the userspace gpio functions
-// to kernel space functions
-
-/*****************************************************************************/
+//LCD Initialize Function still in userspace
+/*
+static void lcd_init(void) {
+	
+	Value(lcd_E, 0); //Enable Pin intially low
+	
+	usleep(15000); //ensure screen is powered up for long enough
+	lcd_write(0, lcd_FunctionReset);
+	usleep(5000);
+	lcd_write(0, lcd_FunctionReset);
+	usleep(150);
+	lcd_write(0, lcd_FunctionReset);
+	usleep(150);
+	lcd_write(0, lcd_FunctionSet);
+	usleep(100);
+	lcd_instruct(lcd_FunctionSet);
+	usleep(100);
+	lcd_instruct(lcd_Clear);
+	usleep(100);
+	lcd_instruct(lcd_EntryMode);
+	usleep(100);
+	lcd_instruct(lcd_DisplayOn);
+} */
 
 // ioctl system call
 // If an LCD instruction is the command then
@@ -60,15 +78,15 @@ static struct lcd_data_t *lcd_dat=NULL;
 static long lcd_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
 	switch (cmd) {
-	case LCD_WRITE:
+	case LCDIO_WRITE:
 		printk("Writing to Screen");
 		//Do stuff
 		break;
-	case LCD_CLEAR:
+	case LCDIO_CLEAR:
 		printk("Clearing LCD");
 		//Do stuff
 		break;
-	case LCD_COMMAND:
+	case LCDIO_COMMAND:
 		printk("Running LCD Command");
         //Do stuff
 		break;
