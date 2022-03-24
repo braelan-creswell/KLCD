@@ -59,12 +59,26 @@ static struct lcd_data_t *lcd_dat=NULL;
 // Determine if locking is needed and add appropriate code as needed.
 static long lcd_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
-/*****************************************************************************/
-// Add your ioctl code here
+	switch (cmd) {
+	case LCD_WRITE:
+		printk("Writing to Screen");
+		//Do stuff
+		break;
+	case LCD_CLEAR:
+		printk("Clearing LCD");
+		//Do stuff
+		break;
+	case LCD_COMMAND:
+		printk("Running LCD Command");
+        //Do stuff
+		break;
+	default:
+		return -EINVAL;
+		break;
+	}
 
-// Fix the return value
-	return -EINVAL;
-/*****************************************************************************/
+	return 0;
+
 }
 
 // Write system call - always check for and act appropriately upon error.

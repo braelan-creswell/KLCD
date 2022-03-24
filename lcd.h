@@ -9,19 +9,6 @@
 #define DRIVER_AUTHOR	"Braelan Creswell"
 #define DRIVER_DESC	"4bit mode LCD Kernel Driver for RPi"	
 
-#define LCD_D7   26                   // lcd D7 connection
-
-#define LCD_D6   19                   // lcd D6 connection
-
-#define lcd_D5   13                   // lcd D5 connection
-
-#define LCD_D4    6                   // lcd D4 connection
-
-#define LCD_E    27                   // lcd Enable pin
-
-#define LCD_RS   17                   // lcd Register Select pin
-
-
 // LCD module information
 #define LCD_LINEONE     0x00                    //line 1
 #define LCD_LINETWO     0x40                    //line 2
