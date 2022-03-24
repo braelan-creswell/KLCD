@@ -6,9 +6,6 @@
 #include <linux/types.h>
 #include <asm/ioctl.h>
 
-#define DRIVER_AUTHOR	"Braelan Creswell"
-#define DRIVER_DESC	"4bit mode LCD Kernel Driver for RPi"	
-
 //IOCTL Commands
 #define MAGIC_NUM       ???
 

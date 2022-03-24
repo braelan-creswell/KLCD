@@ -242,6 +242,7 @@ static int __init lcd_probe(void)
 
 	// Setup the device so the device special file is created with 0666 perms
 	lcd_dat->lcd_class->devnode=lcd_devnode;
+	//Call device_create
 	lcd_dat->lcd_dev=device_create(lcd_dat->lcd_class,NULL,MKDEV(lcd_dat->lcd_major,0),(void *)lcd_dat,"lcd");
 	if (IS_ERR(lcd_dat->lcd_dev)) {
 		printk(KERN_INFO "Failed to create device file\n");
@@ -324,7 +325,8 @@ static void __exit lcd_remove(void)
 module_init(lcd_probe);
 module_exit(lcd_remove);
 
-MODULE_DESCRIPTION("RPI R-2R LCD");
+MODULE_AUTHOR("Braelan Creswell");
+MODULE_DESCRIPTION("4bit mode LCD Kernel Driver for RPi");
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("KLCD");
 #include <linux/kernel.h>
