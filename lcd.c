@@ -1,6 +1,6 @@
 // A. Sheaff 2/22/2022 - Framework code
 // Braelan Creswell - Kernel Driver
-// that operates an LCD
+// Operates a 4bit LCD
 // Allocate GPIO pins from the kernel
 #include <linux/module.h>
 #include <linux/kernel.h>
@@ -37,10 +37,9 @@ struct lcd_data_t {
 	struct device *lcd_dev;				// Device for auto /dev population
 	struct platform_device *pdev;		// Platform driver
 	int lcd_major;						// Device major number
-/*****************************************************************************/
-	// Add your locking variable below this line
-
-/*****************************************************************************/
+	//Spinlock locking variable declaration
+	spinlock_t lcd_spinlock;
+	//spin_lock(&&lcd_dat->lcd_spinlock);
 
 };
 
@@ -50,9 +49,9 @@ static struct lcd_data_t *lcd_dat=NULL;
 //LCD Initialize Function still in userspace
 /*
 static void lcd_init(void) {
-	
+
 	Value(lcd_E, 0); //Enable Pin intially low
-	
+
 	usleep(15000); //ensure screen is powered up for long enough
 	lcd_write(0, lcd_FunctionReset);
 	usleep(5000);
@@ -263,11 +262,10 @@ static int __init lcd_probe(void)
 	lcd_dat->gpio_lcd_d7=lcd_obtain_pin(lcd_dat->lcd_dev,26,"LCD_D7",0);
 	if (lcd_dat->gpio_lcd_d7==NULL) goto fail;
 
-/*****************************************************************************/
-// Add your locking initializer and lcd initializer here
+  //Initialize Spinlock
+	spin_lock_init(&lcd_dat->lcd_spinlock);
 
-
-
+	//Initialize LCD
 
 /*****************************************************************************/
 
