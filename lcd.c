@@ -49,24 +49,54 @@ static struct lcd_data_t *lcd_dat=NULL;
 //LCD Initialize Function still in userspace
 static void lcd_init(void) {
 
-	Value(lcd_E, 0); //Enable Pin intially low
+	gpio_set_value(lcd_dat->gpio_lcd_e, 0); //Enable pin init low
 
-	usleep(15000); //ensure screen is powered up for long enough
-	lcd_write(0, lcd_FunctionReset);
-	usleep(5000);
-	lcd_write(0, lcd_FunctionReset);
-	usleep(150);
-	lcd_write(0, lcd_FunctionReset);
-	usleep(150);
-	lcd_write(0, lcd_FunctionSet);
-	usleep(100);
-	lcd_instruct(lcd_FunctionSet);
-	usleep(100);
-	lcd_instruct(lcd_Clear);
-	usleep(100);
-	lcd_instruct(lcd_EntryMode);
-	usleep(100);
-	lcd_instruct(lcd_DisplayOn);
+	msleep(15); //ensure screen is powered up for long enough
+	lcd_sendbits(0, LCD_FUNCTIONRESET);
+	msleep(5);
+	lcd_sendbits(0, LCD_FUNCTIONRESET);
+	msleep(1);
+	lcd_sendbits(0, LCD_FUNCTIONRESET);
+	msleep(1);
+	lcd_sendbits(0, LCD_FUNCTIONSET);
+	msleep(1);
+	lcd_sendbits(0, LCD_FUNCTIONSET);
+	msleep(1);
+	lcd_sendbits(0, LCD_CLEAR);
+	msleep(1);
+	lcd_sendbits(0, LCD_ENTRYMODE);
+	msleep(1);
+	lcd_sendbits(0, LCD_DISPLAYON);
+}
+
+//Clock Function (Enable Pin)
+static void lcd_clk(void) {
+	gpio_set_value(lcd_dat->gpio_lcd_e, 1);
+	msleep(5);
+	gpio_set_value(lcd_dat->gpio_lcd_e, 0);
+}
+
+//Send bits to LCD
+static void lcd_sendbits(u_int8_t flag, u_int8_t data) {
+    if(flag == 1) {
+			gpio_set_value(REGISTER_SELECT, 1); //Set register to Data mode
+		}
+		else {
+			gpio_set_value(REGISTER_SELECT, 0); //Set register to Command mode
+		}
+
+		gpio_set_value(lcd_dat->gpio_lcd_e, 0); //Enable pin init low
+
+		gpio_set_value(lcd_dat->gpio_lcd_d7, 0);
+		if(data & 1<<7) gpio_set_value(lcd_dat->gpio_lcd_d7, 1); //Check 7th bit
+		gpio_set_value(lcd_dat->gpio_lcd_d6, 0);;
+		if(data & 1<<6) gpio_set_value(lcd_dat->gpio_lcd_d6, 1); //check 6th bit
+		gpio_set_value(lcd_dat->gpio_lcd_d5, 0);
+		if(data & 1<<5) gpio_set_value(lcd_dat->gpio_lcd_d5, 1); //check 5th bit
+		gpio_set_value(lcd_dat->gpio_lcd_d4, 0);
+		if(data & 1<<4) gpio_set_value(lcd_dat->gpio_lcd_d4, 1); //check 4th bit
+
+		lcd_clk(); //flip enable pin to write
 }
 
 // ioctl system call
@@ -97,7 +127,7 @@ static long lcd_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 }
 
-// Write system call - always check for and act appropriately upon error. 
+// Write system call - always check for and act appropriately upon error.
 //  DO not return upon while holding a lock
 // maximum write size to the LCD is 32 bytes.
 //   Do not allow any more.  Return the minimum of count or 32, or an error.

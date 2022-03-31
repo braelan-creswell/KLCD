@@ -7,9 +7,9 @@
 #include <asm/ioctl.h>
 
 //IOCTL Commands
-#define MAGIC_NUM       ???
+#define MAGIC_NUM       0xA
 
-#define LCDIO_WRITE     _IO(MAGIC_NUM, 1)
+#define LCDIO_INIT      _IO(MAGIC_NUM, 1)
 #define LCDIO_CLEAR     _IO(MAGIC_NUM, 2)
 #define LCDIO_COMMAND   _IO(MAGIC_NUM, 3)
 
@@ -21,7 +21,7 @@
 // LCD instructions
 #define LCD_CLEAR          0b00000001          // replace all characters with space
 #define LCD_HOME           0b00000010          // return cursor to first position
-#define LCD_ENTRYMODE      0b00000110          
+#define LCD_ENTRYMODE      0b00000110
 #define LCD_DISPLAYOFF     0b00001000          // turn display off
 #define LCD_DISPLAYON      0b00001111          // display on, cursor on, blink character
 #define LCD_FUNCTIONRESET  0b00110000          // reset
