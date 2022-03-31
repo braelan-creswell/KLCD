@@ -47,7 +47,6 @@ struct lcd_data_t {
 static struct lcd_data_t *lcd_dat=NULL;
 
 //LCD Initialize Function still in userspace
-/*
 static void lcd_init(void) {
 
 	Value(lcd_E, 0); //Enable Pin intially low
@@ -68,7 +67,7 @@ static void lcd_init(void) {
 	lcd_instruct(lcd_EntryMode);
 	usleep(100);
 	lcd_instruct(lcd_DisplayOn);
-} */
+}
 
 // ioctl system call
 // If an LCD instruction is the command then
@@ -79,7 +78,7 @@ static long lcd_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	switch (cmd) {
 	case LCDIO_WRITE:
 		printk("Writing to Screen");
-		//Do stuff
+		lcd_write();
 		break;
 	case LCDIO_CLEAR:
 		printk("Clearing LCD");
@@ -98,7 +97,7 @@ static long lcd_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 }
 
-// Write system call - always check for and act appropriately upon error.
+// Write system call - always check for and act appropriately upon error. 
 //  DO not return upon while holding a lock
 // maximum write size to the LCD is 32 bytes.
 //   Do not allow any more.  Return the minimum of count or 32, or an error.
