@@ -74,7 +74,7 @@ static void lcd_clk(void) {
 }
 
 //Send bits to LCD
-static void lcd_sendbits(u_int8_t RS, u_int8_t data) {
+static void lcd_sendbits(int RS, int data) {
     if(RS)
 		gpio_set_value(lcd_dat->gpio_lcd_rs, 1); //Set register to Data mode
 	else
@@ -95,7 +95,7 @@ static void lcd_sendbits(u_int8_t RS, u_int8_t data) {
 	lcd_clk(); //flip enable pin to write
 }
 
-static void lcd_sendbyte(u_int8_t flag, u_int8_t data) {
+static void lcd_sendbyte(int flag, int data) {
 	lcd_sendbits(flag, data);
 	lcd_sendbits(flag, data << 4);
 	
@@ -128,7 +128,7 @@ static long lcd_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 				printk("LCD - Error copying data from user!\n");     //handle errors
 		else {
 			printk("Running LCD Command");
-			lcd_sendbits(0, userbits);                               //send command to LCD
+			lcd_sendbyte(0, userbits);                               //send command to LCD
 		}
 		spin_unlock(&lcd_dat->lcd_spinlock);
 		break;
