@@ -138,7 +138,6 @@ static long lcd_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	}
 
 	return 0;
-
 }
 
 // Write system call - always check for and act appropriately upon error.
@@ -162,12 +161,44 @@ static long lcd_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 // This function return the number of byte successfully writen
 static ssize_t lcd_write(struct file *filp, const char __user *buf, size_t count, loff_t *offp)
 {
-/*****************************************************************************/
-// Add your write code here
+    int i;
+	uint8_t not_copied;
+	
+	if(count > 32) {
+		printk("More than 32 bytes sent");
+		return -ENOMEM;
+	}
+	
+	spin_lock(&lcd_dat->lcd_spinlock); //Lock
+	
+	char *data = kmalloc(count, GFP_KERNEL);
+	printk("count: %d", count);
+	// Return error if can't allocate memory
+	if (data == NULL) {
+		spin_unlock(&lcd_dat->lcd_spinlock); //Unlock before return
+		printk("Not Enough Memory");
+		return -ENOMEM;
+	}
 
-// Fix the return value
-	return 0;
-/*****************************************************************************/
+	not_copied = copy_from_user(data, buf, count);
+	// If there was an error copying from user space return EFAULT
+	if (not_copied == 0) {
+		printk("Copied %d bytes", count);
+	} else {
+		printk("While Copying, %d bytes failed", not_copied);
+		kfree(data);
+		spin_unlock(&lcd_dat->lcd_spinlock); //Unlock before return
+		return -EFAULT;
+	}
+	
+	for (i = 0; i < count; i++) {
+	    lcd_sendbyte(1, data[i]); //Send data to LCD 8 bits at a time.
+	}
+
+	
+	kfree(data);
+	spin_unlock(&lcd_dat->lcd_spinlock); //Unlock before return
+    return count;
 }
 
 // Open system call
