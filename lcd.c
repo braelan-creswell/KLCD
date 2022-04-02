@@ -39,18 +39,15 @@ struct lcd_data_t {
 	int lcd_major;						// Device major number
 	//Spinlock locking variable declaration
 	spinlock_t lcd_spinlock;
-	//spin_lock(&&lcd_dat->lcd_spinlock);
+	//spin_lock(&lcd_dat->lcd_spinlock);
 
 };
 
 // LCD data structure access between functions
 static struct lcd_data_t *lcd_dat=NULL;
 
-//LCD Initialize Function still in userspace
+//LCD Initialize Function
 static void lcd_init(void) {
-
-	gpio_set_value(lcd_dat->gpio_lcd_e, 0); //Enable pin init low
-
 	msleep(15); //ensure screen is powered up for long enough
 	lcd_sendbits(0, LCD_FUNCTIONRESET);
 	msleep(5);
@@ -109,9 +106,9 @@ static long lcd_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	switch (cmd) {
 	case LCDIO_INIT:
 		printk("Initializing Screen");
-		spin_lock(&lcd_dat->lcd_spinlock);    //Locking
+		spin_lock(&lcd_dat->lcd_spinlock);
 		lcd_init();                           //Initialize Display
-		spin_unlock(&&lcd_dat->lcd_spinlock); //Unlock
+		spin_unlock(&lcd_dat->lcd_spinlock);
 		break;
 	case LCDIO_CLEAR:
 		printk("Clearing LCD");
@@ -302,10 +299,13 @@ static int __init lcd_probe(void)
 	lcd_dat->gpio_lcd_d7=lcd_obtain_pin(lcd_dat->lcd_dev,26,"LCD_D7",0);
 	if (lcd_dat->gpio_lcd_d7==NULL) goto fail;
 
-  //Initialize Spinlock
+    //Initialize Spinlock
 	spin_lock_init(&lcd_dat->lcd_spinlock);
 
 	//Initialize LCD
+	spin_lock(&lcd_dat->lcd_spinlock);
+	lcd_init();                           //Initialize Display
+	spin_unlock(&lcd_dat->lcd_spinlock);
 
 /*****************************************************************************/
 

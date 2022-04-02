@@ -11,7 +11,7 @@
 
 #define LCDIO_INIT      _IO(MAGIC_NUM, 1)
 #define LCDIO_CLEAR     _IO(MAGIC_NUM, 2)
-#define LCDIO_COMMAND   _IOW(MAGIC_NUM, 3, int)
+#define LCDIO_COMMAND   _IOW(MAGIC_NUM, 3, int8_t)
 
 // LCD module information
 #define LCD_LINEONE     0x00                    //line 1
