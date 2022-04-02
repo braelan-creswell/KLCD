@@ -168,11 +168,18 @@ static ssize_t lcd_write(struct file *filp, const char __user *buf, size_t count
 }
 
 // Open system call
-// Open only if the file access flags (NOT permissions) are appropiate as discussed in class
-// Return an appropraite error otherwise
+// Open only if the file access flags are appropiate
 static int lcd_open(struct inode *inode, struct file *filp)
 {
-    printk("Open was called!\n");
+	//Check flags to make sure  file is write only
+	if(!(filp->f_flags & O_WRONLY)){
+		printk(KERN_INFO "File is not write only!\n");
+		return -1;
+
+	}
+	printk(KERN_INFO "File open succeeded!\n");
+	filp->private_data=lcd_dat; 
+
 	return 0;
 }
 
