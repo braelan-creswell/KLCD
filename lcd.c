@@ -78,25 +78,24 @@ static void lcd_clk(void) {
 
 //Send bits to LCD
 static void lcd_sendbits(u_int8_t flag, u_int8_t data) {
-    if(flag == 1) {
-			gpio_set_value(REGISTER_SELECT, 1); //Set register to Data mode
-		}
-		else {
-			gpio_set_value(REGISTER_SELECT, 0); //Set register to Command mode
-		}
+    if(flag)
+		gpio_set_value(REGISTER_SELECT, 1); //Set register to Data mode
+	else
+		gpio_set_value(REGISTER_SELECT, 0); //Set register to Command mode
+		
 
-		gpio_set_value(lcd_dat->gpio_lcd_e, 0); //Enable pin init low
+	gpio_set_value(lcd_dat->gpio_lcd_e, 0); //Enable pin init low
 
-		gpio_set_value(lcd_dat->gpio_lcd_d7, 0);
-		if(data & 1<<7) gpio_set_value(lcd_dat->gpio_lcd_d7, 1); //Check 7th bit
-		gpio_set_value(lcd_dat->gpio_lcd_d6, 0);;
-		if(data & 1<<6) gpio_set_value(lcd_dat->gpio_lcd_d6, 1); //check 6th bit
-		gpio_set_value(lcd_dat->gpio_lcd_d5, 0);
-		if(data & 1<<5) gpio_set_value(lcd_dat->gpio_lcd_d5, 1); //check 5th bit
-		gpio_set_value(lcd_dat->gpio_lcd_d4, 0);
-		if(data & 1<<4) gpio_set_value(lcd_dat->gpio_lcd_d4, 1); //check 4th bit
+	gpio_set_value(lcd_dat->gpio_lcd_d7, 0);
+	if(data & 1<<7) gpio_set_value(lcd_dat->gpio_lcd_d7, 1); //Check 7th bit
+	gpio_set_value(lcd_dat->gpio_lcd_d6, 0);;
+	if(data & 1<<6) gpio_set_value(lcd_dat->gpio_lcd_d6, 1); //check 6th bit
+	gpio_set_value(lcd_dat->gpio_lcd_d5, 0);
+	if(data & 1<<5) gpio_set_value(lcd_dat->gpio_lcd_d5, 1); //check 5th bit
+	gpio_set_value(lcd_dat->gpio_lcd_d4, 0);
+	if(data & 1<<4) gpio_set_value(lcd_dat->gpio_lcd_d4, 1); //check 4th bit
 
-		lcd_clk(); //flip enable pin to write
+	lcd_clk(); //flip enable pin to write
 }
 
 // ioctl system call
@@ -105,18 +104,30 @@ static void lcd_sendbits(u_int8_t flag, u_int8_t data) {
 // Determine if locking is needed and add appropriate code as needed.
 static long lcd_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
+	int *userbits;
+	
 	switch (cmd) {
-	case LCDIO_WRITE:
-		printk("Writing to Screen");
-		lcd_write();
+	case LCDIO_INIT:
+		printk("Initializing Screen");
+		spin_lock(&lcd_dat->lcd_spinlock);    //Locking
+		lcd_init();                           //Initialize Display
+		spin_unlock(&&lcd_dat->lcd_spinlock); //Unlock
 		break;
 	case LCDIO_CLEAR:
 		printk("Clearing LCD");
-		//Do stuff
+		spin_lock(&lcd_dat->lcd_spinlock);
+		lcd_sendbits(0, LCD_CLEAR);           //Send clear command
+		spin_unlock(&&lcd_dat->lcd_spinlock);
 		break;
 	case LCDIO_COMMAND:
-		printk("Running LCD Command");
-        //Do stuff
+	    spin_lock(&lcd_dat->lcd_spinlock);
+        if(copy_from_user(&userbits, (int *) arg, sizeof(userbits))) //copy data from user
+				printk("LCD - Error copying data from user!\n");     //handle errors
+		else {
+			printk("Running LCD Command");
+			lcd_sendbits(0, userbits);                               //send command to LCD
+		}
+		spin_unlock(&lcd_dat->lcd_spinlock);
 		break;
 	default:
 		return -EINVAL;
@@ -152,7 +163,7 @@ static ssize_t lcd_write(struct file *filp, const char __user *buf, size_t count
 // Add your write code here
 
 // Fix the return value
-	return -EINVAL;
+	return 0;
 /*****************************************************************************/
 }
 
