@@ -146,15 +146,6 @@ static long lcd_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 //   Do not allow any more.  Return the minimum of count or 32, or an error.
 // allocate memory in the kernel for data passed from user space
 // copy the data
-// If the file is opened non-blocking and the lock is held,
-//   return with an appropraite error
-// else
-//   If the lock is held,
-//     Wait until the lock is released and then acquire the lock
-//     if while waiting for the lock, the user process is interrupted
-//       return with and error
-//   else
-//     Acquire the lock
 // Write up to the first 32 bytes of data to the LCD at the proper location
 // release the lock
 // Free memory
@@ -194,7 +185,7 @@ static ssize_t lcd_write(struct file *filp, const char __user *buf, size_t count
 	for (i = 0; i < count; i++) {
 	    lcd_sendbyte(1, data[i]); //Send data to LCD 8 bits at a time.
 	}
-
+    //    while (data[i] != 0) Alternative
 	
 	kfree(data);
 	spin_unlock(&lcd_dat->lcd_spinlock); //Unlock before return
