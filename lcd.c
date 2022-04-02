@@ -172,22 +172,15 @@ static ssize_t lcd_write(struct file *filp, const char __user *buf, size_t count
 // Return an appropraite error otherwise
 static int lcd_open(struct inode *inode, struct file *filp)
 {
-/*****************************************************************************/
-// Add your open code here
-
-/*****************************************************************************/
-
+    printk("Open was called!\n");
 	return 0;
 }
 
 // Close system call
 static int lcd_release(struct inode *inode, struct file *filp)
 {
-/*****************************************************************************/
-// Add your release (close) code here
-
-/*****************************************************************************/
-    return 0;
+    printk("Close was called!\n");
+	return 0;
 }
 
 // File operations for the lcd device.  Uninitialized will be NULL.
