@@ -49,7 +49,7 @@ static struct lcd_data_t *lcd_dat=NULL;
 //LCD Initialize Function
 static void lcd_init(void) {
 	msleep(15); //ensure screen is powered up for long enough
-	lcd_sendbits(0, LCD_FUNCTIONRESET);
+	lcd_sendbits(0, LCD_FUNCTIONRESET); //sends first 4 bits of 8 bit data
 	msleep(5);
 	lcd_sendbits(0, LCD_FUNCTIONRESET);
 	msleep(1);
@@ -57,13 +57,13 @@ static void lcd_init(void) {
 	msleep(1);
 	lcd_sendbits(0, LCD_FUNCTIONSET);
 	msleep(1);
-	lcd_sendbits(0, LCD_FUNCTIONSET);
+	lcd_sendbyte(0, LCD_FUNCTIONSET); //sends all 8 bits of 8bit data, 4bits at a time
 	msleep(1);
-	lcd_sendbits(0, LCD_CLEAR);
+	lcd_sendbyte(0, LCD_CLEAR);
 	msleep(1);
-	lcd_sendbits(0, LCD_ENTRYMODE);
+	lcd_sendbyte(0, LCD_ENTRYMODE);
 	msleep(1);
-	lcd_sendbits(0, LCD_DISPLAYON);
+	lcd_sendbyte(0, LCD_DISPLAYON);
 }
 
 //Clock Function (Enable Pin)
@@ -74,11 +74,11 @@ static void lcd_clk(void) {
 }
 
 //Send bits to LCD
-static void lcd_sendbits(u_int8_t flag, u_int8_t data) {
-    if(flag)
-		gpio_set_value(REGISTER_SELECT, 1); //Set register to Data mode
+static void lcd_sendbits(u_int8_t RS, u_int8_t data) {
+    if(RS)
+		gpio_set_value(lcd_dat->gpio_lcd_rs, 1); //Set register to Data mode
 	else
-		gpio_set_value(REGISTER_SELECT, 0); //Set register to Command mode
+		gpio_set_value(lcd_dat->gpio_lcd_rs, 0); //Set register to Command mode
 		
 
 	gpio_set_value(lcd_dat->gpio_lcd_e, 0); //Enable pin init low
@@ -93,6 +93,12 @@ static void lcd_sendbits(u_int8_t flag, u_int8_t data) {
 	if(data & 1<<4) gpio_set_value(lcd_dat->gpio_lcd_d4, 1); //check 4th bit
 
 	lcd_clk(); //flip enable pin to write
+}
+
+static void lcd_sendbyte(u_int8_t flag, u_int8_t data) {
+	lcd_sendbits(flag, data);
+	lcd_sendbits(flag, data << 4);
+	
 }
 
 // ioctl system call
