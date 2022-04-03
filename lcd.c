@@ -68,34 +68,34 @@ static void lcd_init(void) {
 
 //Clock Function (Enable Pin)
 static void lcd_clk(void) {
-	gpio_set_value(lcd_dat->gpio_lcd_e, 1);
+	gpiod_set_value(lcd_dat->gpio_lcd_e, 1);
 	msleep(5);
-	gpio_set_value(lcd_dat->gpio_lcd_e, 0);
+	gpiod_set_value(lcd_dat->gpio_lcd_e, 0);
 }
 
 //Send bits to LCD
-static void lcd_sendbits(int RS, int data) {
+static void lcd_sendbits(int RS, uint8_t data) {
     if(RS)
-		gpio_set_value(lcd_dat->gpio_lcd_rs, 1); //Set register to Data mode
+		gpiod_set_value(lcd_dat->gpio_lcd_rs, 1); //Set register to Data mode
 	else
-		gpio_set_value(lcd_dat->gpio_lcd_rs, 0); //Set register to Command mode
+		gpiod_set_value(lcd_dat->gpio_lcd_rs, 0); //Set register to Command mode
 		
 
-	gpio_set_value(lcd_dat->gpio_lcd_e, 0); //Enable pin init low
+	gpiod_set_value(lcd_dat->gpio_lcd_e, 0); //Enable pin init low
 
-	gpio_set_value(lcd_dat->gpio_lcd_d7, 0);
-	if(data & 1<<7) gpio_set_value(lcd_dat->gpio_lcd_d7, 1); //Check 7th bit
-	gpio_set_value(lcd_dat->gpio_lcd_d6, 0);;
-	if(data & 1<<6) gpio_set_value(lcd_dat->gpio_lcd_d6, 1); //check 6th bit
-	gpio_set_value(lcd_dat->gpio_lcd_d5, 0);
-	if(data & 1<<5) gpio_set_value(lcd_dat->gpio_lcd_d5, 1); //check 5th bit
-	gpio_set_value(lcd_dat->gpio_lcd_d4, 0);
-	if(data & 1<<4) gpio_set_value(lcd_dat->gpio_lcd_d4, 1); //check 4th bit
+	gpiod_set_value(lcd_dat->gpio_lcd_d7, 0);
+	if(data & 1<<7) gpiod_set_value(lcd_dat->gpio_lcd_d7, 1); //Check 7th bit
+	gpiod_set_value(lcd_dat->gpio_lcd_d6, 0);;
+	if(data & 1<<6) gpiod_set_value(lcd_dat->gpio_lcd_d6, 1); //check 6th bit
+	gpiod_set_value(lcd_dat->gpio_lcd_d5, 0);
+	if(data & 1<<5) gpiod_set_value(lcd_dat->gpio_lcd_d5, 1); //check 5th bit
+	gpiod_set_value(lcd_dat->gpio_lcd_d4, 0);
+	if(data & 1<<4) gpiod_set_value(lcd_dat->gpio_lcd_d4, 1); //check 4th bit
 
 	lcd_clk(); //flip enable pin to write
 }
 
-static void lcd_sendbyte(int flag, int data) {
+static void lcd_sendbyte(int flag, uint8_t data) {
 	lcd_sendbits(flag, data);
 	lcd_sendbits(flag, data << 4);
 	
@@ -120,7 +120,7 @@ static long lcd_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		printk("Clearing LCD");
 		spin_lock(&lcd_dat->lcd_spinlock);
 		lcd_sendbits(0, LCD_CLEAR);           //Send clear command
-		spin_unlock(&&lcd_dat->lcd_spinlock);
+		spin_unlock(&lcd_dat->lcd_spinlock);
 		break;
 	case LCDIO_COMMAND:
 	    spin_lock(&lcd_dat->lcd_spinlock);
@@ -128,7 +128,7 @@ static long lcd_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 				printk("LCD - Error copying data from user!\n");     //handle errors
 		else {
 			printk("Running LCD Command");
-			lcd_sendbyte(0, userbits);                               //send command to LCD
+			lcd_sendbyte(0, *userbits);                               //send command to LCD
 		}
 		spin_unlock(&lcd_dat->lcd_spinlock);
 		break;
@@ -154,6 +154,7 @@ static ssize_t lcd_write(struct file *filp, const char __user *buf, size_t count
 {
     int i;
 	uint8_t not_copied;
+	char *data;
 	
 	if(count > 32) {
 		printk("More than 32 bytes sent");
@@ -162,8 +163,8 @@ static ssize_t lcd_write(struct file *filp, const char __user *buf, size_t count
 	
 	spin_lock(&lcd_dat->lcd_spinlock); //Lock
 	
-	char *data = kmalloc(count, GFP_KERNEL);
-	printk("count: %d", count);
+	data = kmalloc(count, GFP_KERNEL);
+	printk("count: %zu", count);
 	// Return error if can't allocate memory
 	if (data == NULL) {
 		spin_unlock(&lcd_dat->lcd_spinlock); //Unlock before return
@@ -174,7 +175,7 @@ static ssize_t lcd_write(struct file *filp, const char __user *buf, size_t count
 	not_copied = copy_from_user(data, buf, count);
 	// If there was an error copying from user space return EFAULT
 	if (not_copied == 0) {
-		printk("Copied %d bytes", count);
+		printk("Copied %zu bytes", count);
 	} else {
 		printk("While Copying, %d bytes failed", not_copied);
 		kfree(data);

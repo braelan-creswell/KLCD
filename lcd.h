@@ -7,7 +7,7 @@
 #include <asm/ioctl.h>
 
 //IOCTL Commands
-#define MAGIC_NUM       A
+#define MAGIC_NUM       'a'
 
 #define LCDIO_INIT      _IO(MAGIC_NUM, 1)
 #define LCDIO_CLEAR     _IO(MAGIC_NUM, 2)
@@ -27,5 +27,12 @@
 #define LCD_FUNCTIONRESET  0b00110000          // reset
 #define LCD_FUNCTIONSET    0b00101000          // 4-bit data, 2-line display, 5 x 7 font
 #define LCD_SETCURSOR      0b10000000          // set cursor position
+
+//Function Prototypes
+static void lcd_init(void);
+static void lcd_clk(void);
+static void lcd_sendbits(int RS, uint8_t data);
+static void lcd_sendbyte(int flag, uint8_t data);
+
 
 #endif	// LCD_H
