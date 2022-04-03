@@ -69,7 +69,7 @@ static void lcd_init(void) {
 //Clock Function (Enable Pin)
 static void lcd_clk(void) {
 	gpiod_set_value(lcd_dat->gpio_lcd_e, 1);
-	msleep(5);
+	mdelay(5); //atomic delay
 	gpiod_set_value(lcd_dat->gpio_lcd_e, 0);
 }
 
@@ -107,8 +107,6 @@ static void lcd_sendbyte(int flag, uint8_t data) {
 // Determine if locking is needed and add appropriate code as needed.
 static long lcd_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
-	int *userbits;
-	
 	switch (cmd) {
 	case LCDIO_INIT:
 		printk("Initializing Screen");
@@ -118,18 +116,21 @@ static long lcd_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		printk("Clearing LCD");
 		lcd_sendbyte(0, LCD_CLEAR);           //Send clear command
 		break;
-	case LCDIO_COMMAND:
-	    spin_lock(&lcd_dat->lcd_spinlock);
-        if(copy_from_user(&userbits, (int *) arg, sizeof(userbits))) { //copy data from user
-		        spin_unlock(&lcd_dat->lcd_spinlock);                   //Unlock before return
-				printk("LCD - Error copying data from user!\n");       //handle errors
-				return -EFAULT;
-		}
-		else {
-			spin_unlock(&lcd_dat->lcd_spinlock);                     //Unlock before sending data to LCD
-			printk("Running LCD Command");
-			lcd_sendbyte(0, *userbits);                               //send command to LCD
-		}
+	case LCDIO_ON:
+		printk("Turning On LCD");
+		lcd_sendbyte(0, LCD_DISPLAYON);           //Send on command
+		break;
+	case LCDIO_OFF:
+		printk("Turning Off LCD");
+		lcd_sendbyte(0, LCD_DISPLAYOFF);           //Send off command
+		break;
+	case LCDIO_CURSOR1:
+		printk("Setting Cursor 1");
+		lcd_sendbyte(0, LCD_SETCURSOR1);           //Send cursor command
+		break;
+	case LCDIO_CURSOR2:
+		printk("Setting Cursor 2");
+		lcd_sendbyte(0, LCD_SETCURSOR2);           //Send cursor command
 		break;
 	default:
 		return -EINVAL;
@@ -181,14 +182,13 @@ static ssize_t lcd_write(struct file *filp, const char __user *buf, size_t count
 		return -EFAULT;
 	}
 	
-	spin_unlock(&lcd_dat->lcd_spinlock); //Unlock before sending data to LCD
 	
 	for (i = 0; i < count; i++) {
 	    lcd_sendbyte(1, data[i]); //Send data to LCD 8 bits at a time.
 	}
-    //    while (data[i] != 0) Alternative
 	
 	kfree(data);
+	spin_unlock(&lcd_dat->lcd_spinlock); //Unlock before return
     return count;
 }
 
