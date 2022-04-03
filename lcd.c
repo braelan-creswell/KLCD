@@ -112,25 +112,24 @@ static long lcd_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	switch (cmd) {
 	case LCDIO_INIT:
 		printk("Initializing Screen");
-		spin_lock(&lcd_dat->lcd_spinlock);
 		lcd_init();                           //Initialize Display
-		spin_unlock(&lcd_dat->lcd_spinlock);
 		break;
 	case LCDIO_CLEAR:
 		printk("Clearing LCD");
-		spin_lock(&lcd_dat->lcd_spinlock);
-		lcd_sendbits(0, LCD_CLEAR);           //Send clear command
-		spin_unlock(&lcd_dat->lcd_spinlock);
+		lcd_sendbyte(0, LCD_CLEAR);           //Send clear command
 		break;
 	case LCDIO_COMMAND:
 	    spin_lock(&lcd_dat->lcd_spinlock);
-        if(copy_from_user(&userbits, (int *) arg, sizeof(userbits))) //copy data from user
-				printk("LCD - Error copying data from user!\n");     //handle errors
+        if(copy_from_user(&userbits, (int *) arg, sizeof(userbits))) { //copy data from user
+		        spin_unlock(&lcd_dat->lcd_spinlock);                   //Unlock before return
+				printk("LCD - Error copying data from user!\n");       //handle errors
+				return -EFAULT;
+		}
 		else {
+			spin_unlock(&lcd_dat->lcd_spinlock);                     //Unlock before sending data to LCD
 			printk("Running LCD Command");
 			lcd_sendbyte(0, *userbits);                               //send command to LCD
 		}
-		spin_unlock(&lcd_dat->lcd_spinlock);
 		break;
 	default:
 		return -EINVAL;
@@ -183,13 +182,14 @@ static ssize_t lcd_write(struct file *filp, const char __user *buf, size_t count
 		return -EFAULT;
 	}
 	
+	spin_unlock(&lcd_dat->lcd_spinlock); //Unlock before sending data to LCD
+	
 	for (i = 0; i < count; i++) {
 	    lcd_sendbyte(1, data[i]); //Send data to LCD 8 bits at a time.
 	}
     //    while (data[i] != 0) Alternative
 	
 	kfree(data);
-	spin_unlock(&lcd_dat->lcd_spinlock); //Unlock before return
     return count;
 }
 
@@ -332,13 +332,11 @@ static int __init lcd_probe(void)
 	spin_lock_init(&lcd_dat->lcd_spinlock);
 
 	//Initialize LCD
-	spin_lock(&lcd_dat->lcd_spinlock);
-	lcd_init();                           //Initialize Display
-	spin_unlock(&lcd_dat->lcd_spinlock);
+	lcd_init();
 
 /*****************************************************************************/
 
-	printk(KERN_INFO "Registered\n");
+	printk(KERN_INFO "LCD Registered\n");
 
 	return 0;
 
