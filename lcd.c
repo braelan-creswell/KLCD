@@ -163,7 +163,6 @@ static ssize_t lcd_write(struct file *filp, const char __user *buf, size_t count
 	spin_lock(&lcd_dat->lcd_spinlock); //Lock
 	
 	data = kmalloc(count, GFP_KERNEL);
-	printk("count: %zu", count);
 	// Return error if can't allocate memory
 	if (data == NULL) {
 		spin_unlock(&lcd_dat->lcd_spinlock); //Unlock before return
@@ -384,7 +383,7 @@ static void __exit lcd_remove(void)
 		lcd_dat=NULL;
 	}
 
-	printk(KERN_INFO "Removed\n");
+	printk(KERN_INFO "LCD Removed\n");
 }
 
 module_init(lcd_probe);
